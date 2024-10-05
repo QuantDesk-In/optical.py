@@ -1,0 +1,23 @@
+# Compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# PyInstaller build and distribution directories
+/dist/
+/build/
+
+# Compiled UI files (if using tools like pyuic)
+*.ui.py
+
+# macOS system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+
+# Virtual environment (if you use one)
+venv/
+
+*.spec
