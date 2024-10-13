@@ -241,6 +241,8 @@ class OptionCalculatorUI:
         )
         self.result_label.config(text=range_text)
         data = self.data_fetcher.download_data("CL=F", "Crude Oil")
+        usdinr = self.data_fetcher.get_usdinr_rate()
+        data = data * usdinr
         if data is not None:
             self.plot_candlestick(data, "Crude Oil")
 
