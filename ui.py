@@ -114,10 +114,13 @@ class OptionCalculatorUI:
         ttk.Button(
             action_frame, text="Crude Oil Ranges", command=self.crude_operations
         ).grid(row=11, column=0, columnspan=2, pady=10)
+        ttk.Button(
+            action_frame, text="Midcap Ranges", command=self.midcap_operations
+        ).grid(row=12, column=0, columnspan=2, pady=10)
 
         # Result Label
         self.result_label = ttk.Label(action_frame, text="")
-        self.result_label.grid(row=12, column=0, columnspan=2, pady=10)
+        self.result_label.grid(row=13, column=0, columnspan=2, pady=10)
 
         # Set column weights for dynamic resizing
         self.root.grid_columnconfigure(0, weight=1)
@@ -245,6 +248,18 @@ class OptionCalculatorUI:
         data = data * usdinr
         if data is not None:
             self.plot_candlestick(data, "Crude Oil")
+
+    def midcap_operations(self):
+        self.result_label.config(text="Fetching Midcapdata...")  # Feedback
+        self.root.update()  # Force immediate update for visual feedback
+        range_text = self.data_fetcher.calculate_std_for_ticker(
+            "^NSEMDCP50", "Nifty Midcap 50", is_forex=False
+        )
+        self.result_label.config(text=range_text)
+        data = self.data_fetcher.download_data("^NSEMDCP50", "Nifty Midcap 50")
+
+        if data is not None:
+            self.plot_candlestick(data, "Nifty Midcap 50")
 
     def plot_candlestick(self, data, ticker_name):
         # Clear the existing chart, if any
