@@ -140,15 +140,18 @@ class OptionCalculatorUI:
             button_frame, text="Nifty Ranges", command=self.nifty_operations
         ).grid(row=1, column=0, padx=10, pady=10)
         ttk.Button(
-            button_frame, text="Crude Oil Ranges", command=self.crude_operations
+            button_frame, text="Midcap Ranges", command=self.midcap_operations
         ).grid(row=2, column=0, padx=10, pady=10)
         ttk.Button(
-            button_frame, text="Midcap Ranges", command=self.midcap_operations
+            button_frame, text="Banknifty Ranges", command=self.banknifty_operations
         ).grid(row=3, column=0, padx=10, pady=10)
+        ttk.Button(
+            button_frame, text="Crude Oil Ranges", command=self.crude_operations
+        ).grid(row=4, column=0, padx=10, pady=10)
 
         # Result Label for Market Data
         self.market_result_label = ttk.Label(button_frame, text="")
-        self.market_result_label.grid(row=4, column=0, pady=10)
+        self.market_result_label.grid(row=5, column=0, pady=10)
 
         # Set up grid layout for chart display on the right
         self.market_data_tab.grid_columnconfigure(1, weight=1)
@@ -287,6 +290,18 @@ class OptionCalculatorUI:
 
         if data is not None:
             self.plot_candlestick(data, "Nifty Midcap 50")
+
+    def banknifty_operations(self):
+        self.market_result_label.config(text="Fetching Banknifty data...")  # Feedback
+        self.root.update()  # Force immediate update for visual feedback
+        range_text = self.data_fetcher.calculate_std_for_ticker(
+            "^NSEBANK", "Banknifty", is_forex=False
+        )
+        self.market_result_label.config(text=range_text)
+        data = self.data_fetcher.download_data("^NSEBANK", "Banknifty")
+
+        if data is not None:
+            self.plot_candlestick(data, "Bank Nifty")
 
     def plot_candlestick(self, data, ticker_name):
         # Clear the existing chart, if any
