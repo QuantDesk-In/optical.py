@@ -15,19 +15,38 @@ class OptionCalculatorUI:
         self.data_fetcher = DataFetcher()
         self.canvas = None  # This will hold the chart canvas
 
-        self.setup_ui()
+        # Setup the Notebook for tabs
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.grid(row=0, column=0, sticky="nsew")
 
-    def setup_ui(self):
-        # Create frames for grouping elements
-        input_frame = ttk.LabelFrame(self.root, text="Input Data")
+        # Create frames for each tab
+        self.option_tab = ttk.Frame(self.notebook)
+        self.market_data_tab = ttk.Frame(self.notebook)
+
+        self.notebook.add(self.option_tab, text="Option Calculator")
+        self.notebook.add(self.market_data_tab, text="Market Data")
+
+        # Setup UI for both tabs
+        self.setup_option_calculator_ui()
+        self.setup_market_data_ui()
+
+        # Configure grid for dynamic resizing
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
+
+    def setup_option_calculator_ui(self):
+        # Create frames for grouping elements inside the Option Calculator tab
+        input_frame = ttk.LabelFrame(self.option_tab, text="Input Data")
         input_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
 
-        calc_settings_frame = ttk.LabelFrame(self.root, text="Calculation Settings")
+        calc_settings_frame = ttk.LabelFrame(
+            self.option_tab, text="Calculation Settings"
+        )
         calc_settings_frame.grid(
             row=3, column=0, columnspan=2, sticky="ew", padx=10, pady=10
         )
 
-        action_frame = ttk.Frame(self.root)
+        action_frame = ttk.Frame(self.option_tab)
         action_frame.grid(row=8, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
 
         # Spot Price
@@ -108,24 +127,32 @@ class OptionCalculatorUI:
             command=self.calculate_for_multiple_spots,
         ).grid(row=9, column=0, columnspan=2, pady=10)
 
-        ttk.Button(
-            action_frame, text="Nifty Ranges", command=self.nifty_operations
-        ).grid(row=10, column=0, columnspan=2, pady=10)
-        ttk.Button(
-            action_frame, text="Crude Oil Ranges", command=self.crude_operations
-        ).grid(row=11, column=0, columnspan=2, pady=10)
-        ttk.Button(
-            action_frame, text="Midcap Ranges", command=self.midcap_operations
-        ).grid(row=12, column=0, columnspan=2, pady=10)
-
         # Result Label
         self.result_label = ttk.Label(action_frame, text="")
         self.result_label.grid(row=13, column=0, columnspan=2, pady=10)
 
-        # Set column weights for dynamic resizing
-        self.root.grid_columnconfigure(0, weight=1)
-        self.root.grid_columnconfigure(1, weight=1)
-        self.root.grid_columnconfigure(2, weight=2)
+    def setup_market_data_ui(self):
+        # Buttons for Market Data (Nifty, Midcap, Crude, etc.)
+        button_frame = ttk.Frame(self.market_data_tab)
+        button_frame.grid(row=0, column=0, sticky="n", padx=10, pady=10)
+
+        ttk.Button(
+            button_frame, text="Nifty Ranges", command=self.nifty_operations
+        ).grid(row=1, column=0, padx=10, pady=10)
+        ttk.Button(
+            button_frame, text="Crude Oil Ranges", command=self.crude_operations
+        ).grid(row=2, column=0, padx=10, pady=10)
+        ttk.Button(
+            button_frame, text="Midcap Ranges", command=self.midcap_operations
+        ).grid(row=3, column=0, padx=10, pady=10)
+
+        # Result Label for Market Data
+        self.market_result_label = ttk.Label(button_frame, text="")
+        self.market_result_label.grid(row=4, column=0, pady=10)
+
+        # Set up grid layout for chart display on the right
+        self.market_data_tab.grid_columnconfigure(1, weight=1)
+        self.market_data_tab.grid_rowconfigure(0, weight=1)
 
     def toggle_inputs(self):
         toggle_inputs(self.calculation_mode, self.price_entry, self.volatility_entry)
@@ -228,21 +255,21 @@ class OptionCalculatorUI:
         return spot_prices
 
     def nifty_operations(self):
-        self.result_label.config(text="Fetching Nifty data...")  # Feedback
+        self.market_result_label.config(text="Fetching Nifty data...")  # Feedback
         self.root.update()  # Force immediate update for visual feedback
         range_text = self.data_fetcher.calculate_std_for_ticker("^NSEI", "Nifty")
-        self.result_label.config(text=range_text)
+        self.market_result_label.config(text=range_text)
         data = self.data_fetcher.download_data("^NSEI", "Nifty")
         if data is not None:
             self.plot_candlestick(data, "Nifty")
 
     def crude_operations(self):
-        self.result_label.config(text="Fetching Crude Oil data...")  # Feedback
+        self.market_result_label.config(text="Fetching Crude Oil data...")  # Feedback
         self.root.update()  # Force immediate update for visual feedback
         range_text = self.data_fetcher.calculate_std_for_ticker(
             "CL=F", "Crude Oil", is_forex=True
         )
-        self.result_label.config(text=range_text)
+        self.market_result_label.config(text=range_text)
         data = self.data_fetcher.download_data("CL=F", "Crude Oil")
         usdinr = self.data_fetcher.get_usdinr_rate()
         data = data * usdinr
@@ -250,12 +277,12 @@ class OptionCalculatorUI:
             self.plot_candlestick(data, "Crude Oil")
 
     def midcap_operations(self):
-        self.result_label.config(text="Fetching Midcapdata...")  # Feedback
+        self.market_result_label.config(text="Fetching Midcap data...")  # Feedback
         self.root.update()  # Force immediate update for visual feedback
         range_text = self.data_fetcher.calculate_std_for_ticker(
             "^NSEMDCP50", "Nifty Midcap 50", is_forex=False
         )
-        self.result_label.config(text=range_text)
+        self.market_result_label.config(text=range_text)
         data = self.data_fetcher.download_data("^NSEMDCP50", "Nifty Midcap 50")
 
         if data is not None:
@@ -310,7 +337,7 @@ class OptionCalculatorUI:
             fontsize=11,
         )
 
-        # Display the chart in the right side of the Tkinter window
-        self.canvas = FigureCanvasTkAgg(fig, master=self.root)
+        # Display the chart in the right side of the Market Data tab
+        self.canvas = FigureCanvasTkAgg(fig, master=self.market_data_tab)
         self.canvas.draw()
-        self.canvas.get_tk_widget().grid(row=0, column=2, rowspan=20, padx=20, pady=10)
+        self.canvas.get_tk_widget().grid(row=0, column=1, rowspan=5, padx=20, pady=10)
