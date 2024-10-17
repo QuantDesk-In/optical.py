@@ -19,64 +19,41 @@ class OptionCalculatorUI:
         self.notebook = ttk.Notebook(self.root)
         self.notebook.grid(row=0, column=0, sticky="nsew")
 
-        # Create frames for each tab
-        self.option_tab = ttk.Frame(self.notebook)
-        self.market_data_tab = ttk.Frame(self.notebook)
-
-        self.notebook.add(self.option_tab, text="Option Calculator")
-        self.notebook.add(self.market_data_tab, text="Market Data")
-
-        # Setup UI for both tabs
-        self.setup_option_calculator_ui()
-        self.setup_market_data_ui()
+        # Initialize Tabs
+        self.tabs = {}
+        self.init_option_calculator_tab()
+        self.init_market_data_tab()
 
         # Configure grid for dynamic resizing
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
 
-    def setup_option_calculator_ui(self):
-        # Create frames for grouping elements inside the Option Calculator tab
-        input_frame = ttk.LabelFrame(self.option_tab, text="Input Data")
-        input_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+    def init_option_calculator_tab(self):
+        """Initializes the Option Calculator tab."""
+        option_tab = ttk.Frame(self.notebook)
+        self.notebook.add(option_tab, text="Option Calculator")
 
-        calc_settings_frame = ttk.LabelFrame(
-            self.option_tab, text="Calculation Settings"
-        )
-        calc_settings_frame.grid(
-            row=3, column=0, columnspan=2, sticky="ew", padx=10, pady=10
-        )
+        # Create input frame
+        input_frame = self.create_input_frame(option_tab)
+        calc_settings_frame = self.create_calc_settings_frame(option_tab)
+        action_frame = self.create_action_frame(option_tab)
 
-        action_frame = ttk.Frame(self.option_tab)
-        action_frame.grid(row=8, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+    def create_input_frame(self, parent):
+        """Creates the input frame in the option calculator tab."""
+        frame = ttk.LabelFrame(parent, text="Input Data")
+        frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
 
-        # Spot Price
-        ttk.Label(input_frame, text="Spot Price:").grid(
-            row=0, column=0, sticky="w", padx=10, pady=10
-        )
-        self.spot_entry = ttk.Entry(input_frame)
-        self.spot_entry.grid(row=0, column=1, padx=10, pady=10)
-
-        # Strike Price
-        ttk.Label(input_frame, text="Strike Price:").grid(
-            row=1, column=0, sticky="w", padx=10, pady=10
-        )
-        self.strike_entry = ttk.Entry(input_frame)
-        self.strike_entry.grid(row=1, column=1, padx=10, pady=10)
-
-        # Expiry Date
-        ttk.Label(input_frame, text="Expiry Date (YYYY-MM-DD):").grid(
-            row=2, column=0, sticky="w", padx=10, pady=10
-        )
-        self.expiry_entry = ttk.Entry(input_frame)
-        self.expiry_entry.grid(row=2, column=1, padx=10, pady=10)
+        self.create_label_entry(frame, "Spot Price:", 0, "spot_entry")
+        self.create_label_entry(frame, "Strike Price:", 1, "strike_entry")
+        self.create_label_entry(frame, "Expiry Date (YYYY-MM-DD):", 2, "expiry_entry")
 
         # Option Type Dropdown
-        ttk.Label(input_frame, text="Option Type (CALL/PUT):").grid(
+        ttk.Label(frame, text="Option Type (CALL/PUT):").grid(
             row=3, column=0, sticky="w", padx=10, pady=10
         )
         self.option_type_var = tk.StringVar()
         option_type_menu = ttk.Combobox(
-            input_frame,
+            frame,
             textvariable=self.option_type_var,
             state="readonly",
             values=["CALL", "PUT"],
@@ -84,78 +61,125 @@ class OptionCalculatorUI:
         option_type_menu.grid(row=3, column=1, padx=10, pady=10)
         option_type_menu.current(0)
 
-        # Calculation Mode
+        return frame
+
+    def create_calc_settings_frame(self, parent):
+        """Creates the calculation settings frame in the option calculator tab."""
+        frame = ttk.LabelFrame(parent, text="Calculation Settings")
+        frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+
         self.calculation_mode = tk.StringVar(value="volatility")
-        ttk.Radiobutton(
-            calc_settings_frame,
-            text="Calculate Implied Volatility",
-            variable=self.calculation_mode,
-            value="volatility",
-            command=self.toggle_inputs,
-        ).grid(row=4, column=0, sticky="w", padx=10, pady=10)
-        ttk.Radiobutton(
-            calc_settings_frame,
-            text="Calculate Option Price",
-            variable=self.calculation_mode,
-            value="price",
-            command=self.toggle_inputs,
-        ).grid(row=5, column=0, sticky="w", padx=10, pady=10)
+        self.create_radio_button(frame, "Calculate Implied Volatility", 4, "volatility")
+        self.create_radio_button(frame, "Calculate Option Price", 5, "price")
 
-        # Option Price
-        ttk.Label(calc_settings_frame, text="Option Price:").grid(
-            row=6, column=0, sticky="w", padx=10, pady=10
+        # Option Price and Volatility Inputs
+        self.create_label_entry(frame, "Option Price:", 6, "price_entry")
+        self.create_label_entry(
+            frame, "Implied Volatility:", 7, "volatility_entry", state="disabled"
         )
-        self.price_entry = ttk.Entry(calc_settings_frame)
-        self.price_entry.grid(row=6, column=1, padx=10, pady=10)
 
-        # Implied Volatility
-        ttk.Label(calc_settings_frame, text="Implied Volatility:").grid(
-            row=7, column=0, sticky="w", padx=10, pady=10
+        return frame
+
+    def create_action_frame(self, parent):
+        """Creates the action frame with buttons in the option calculator tab."""
+        frame = ttk.Frame(parent)
+        frame.grid(row=8, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+
+        ttk.Button(frame, text="Calculate Option", command=self.calculate_option).grid(
+            row=8, column=0, columnspan=2, pady=10
         )
-        self.volatility_entry = ttk.Entry(calc_settings_frame)
-        self.volatility_entry.grid(row=7, column=1, padx=10, pady=10)
-        self.volatility_entry.config(state="disabled")
-
-        # Buttons for Actions
         ttk.Button(
-            action_frame, text="Calculate Option", command=self.calculate_option
-        ).grid(row=8, column=0, columnspan=2, pady=10)
-
-        ttk.Button(
-            action_frame,
+            frame,
             text="Multiple Spot Prices",
             command=self.calculate_for_multiple_spots,
         ).grid(row=9, column=0, columnspan=2, pady=10)
 
-        # Result Label
-        self.result_label = ttk.Label(action_frame, text="")
+        self.result_label = ttk.Label(frame, text="")
         self.result_label.grid(row=13, column=0, columnspan=2, pady=10)
 
-    def setup_market_data_ui(self):
-        # Buttons for Market Data (Nifty, Midcap, Crude, etc.)
+        return frame
+
+    def create_label_entry(self, parent, text, row, attr_name, state="normal"):
+        """Utility function to create label and entry widgets."""
+        ttk.Label(parent, text=text).grid(
+            row=row, column=0, sticky="w", padx=10, pady=10
+        )
+        entry = ttk.Entry(parent, state=state)
+        entry.grid(row=row, column=1, padx=10, pady=10)
+        setattr(self, attr_name, entry)
+
+    def create_radio_button(self, parent, text, row, value):
+        """Utility function to create radio buttons."""
+        ttk.Radiobutton(
+            parent,
+            text=text,
+            variable=self.calculation_mode,
+            value=value,
+            command=self.toggle_inputs,
+        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+
+    def init_market_data_tab(self):
+        """Initializes the Market Data tab and makes it modular for adding new tickers."""
+        self.market_data_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.market_data_tab, text="Market Data")
+
+        self.tickers = [
+            {"label": "Nifty Ranges", "ticker": "^NSEI", "name": "Nifty"},
+            {
+                "label": "Midcap Ranges",
+                "ticker": "^NSEMDCP50",
+                "name": "Nifty Midcap 50",
+            },
+            {"label": "Banknifty Ranges", "ticker": "^NSEBANK", "name": "Banknifty"},
+            {
+                "label": "Crude Oil Ranges",
+                "ticker": "CL=F",
+                "name": "Crude Oil",
+                "is_forex": True,
+            },
+        ]
+
         button_frame = ttk.Frame(self.market_data_tab)
         button_frame.grid(row=0, column=0, sticky="n", padx=10, pady=10)
 
-        ttk.Button(
-            button_frame, text="Nifty Ranges", command=self.nifty_operations
-        ).grid(row=1, column=0, padx=10, pady=10)
-        ttk.Button(
-            button_frame, text="Midcap Ranges", command=self.midcap_operations
-        ).grid(row=2, column=0, padx=10, pady=10)
-        ttk.Button(
-            button_frame, text="Banknifty Ranges", command=self.banknifty_operations
-        ).grid(row=3, column=0, padx=10, pady=10)
-        ttk.Button(
-            button_frame, text="Crude Oil Ranges", command=self.crude_operations
-        ).grid(row=4, column=0, padx=10, pady=10)
+        # Dynamically add ticker buttons
+        for index, ticker in enumerate(self.tickers):
+            ttk.Button(
+                button_frame,
+                text=ticker["label"],
+                command=lambda t=ticker: self.fetch_and_plot_data(t),
+            ).grid(row=index + 1, column=0, padx=10, pady=10)
 
-        # Result Label for Market Data
         self.market_result_label = ttk.Label(button_frame, text="")
-        self.market_result_label.grid(row=5, column=0, pady=10)
+        self.market_result_label.grid(row=len(self.tickers) + 1, column=0, pady=10)
 
-        # Set up grid layout for chart display on the right
+        # Set up grid layout for chart display
         self.market_data_tab.grid_columnconfigure(1, weight=1)
         self.market_data_tab.grid_rowconfigure(0, weight=1)
+
+    def fetch_and_plot_data(self, ticker_info):
+        """Fetches data and plots candlestick for a given ticker."""
+        self.market_result_label.config(
+            text=f"Fetching {ticker_info['name']} data..."
+        )  # Feedback
+        self.root.update()  # Force immediate update for visual feedback
+
+        range_text = self.data_fetcher.calculate_std_for_ticker(
+            ticker_info["ticker"],
+            ticker_info["name"],
+            ticker_info.get("is_forex", False),
+        )
+        self.market_result_label.config(text=range_text)
+
+        data = self.data_fetcher.download_data(
+            ticker_info["ticker"], ticker_info["name"]
+        )
+        if ticker_info.get("is_forex", False):
+            usdinr = self.data_fetcher.get_usdinr_rate()
+            data = data * usdinr
+
+        if data is not None:
+            self.plot_candlestick(data, ticker_info["name"])
 
     def toggle_inputs(self):
         toggle_inputs(self.calculation_mode, self.price_entry, self.volatility_entry)
@@ -192,16 +216,9 @@ class OptionCalculatorUI:
             self.calculation_mode,
         )
         if inputs:
-            spot, strike, expiry_date, price, volatility = (
-                inputs[0],
-                inputs[1],
-                inputs[2],
-                inputs[3],
-                inputs[4],
-            )
+            spot, strike, expiry_date, price, volatility = inputs
             option_type = self.option_type_var.get()
 
-            # Generate dynamic spot prices based on the input spot
             spot_prices = self.generate_dynamic_spot_prices(spot)
             results = []
 
@@ -215,39 +232,27 @@ class OptionCalculatorUI:
                     price,
                     volatility,
                 )
+
             for s in spot_prices:
                 result = self.calculator.calculate(
-                    s,
-                    strike,
-                    expiry_date,
-                    option_type,
-                    "price",
-                    price,
-                    volatility,
+                    s, strike, expiry_date, option_type, "price", price, volatility
                 )
                 results.append(f"{s}\t: {result}")
 
             self.result_label.config(text="\n".join(results))
 
     def generate_dynamic_spot_prices(self, spot):
-        # Determine the rounding and step size based on the spot price magnitude
-        step = 50  # Default step size
-        if spot >= 10000:
-            step = 500
-        elif spot >= 1000:
-            step = 100
-        elif spot >= 500:
-            step = 50
-        elif spot >= 100:
-            step = 10
-        else:
-            step = 5
-
-        # Round the spot price to the nearest multiple of the step
+        step = (
+            50
+            if spot < 100
+            else (
+                500
+                if spot >= 10000
+                else 100 if spot >= 1000 else 10 if spot >= 500 else 5
+            )
+        )
         rounded_spot = round(spot / step) * step
-
-        # Generate the nearby spot prices
-        spot_prices = [
+        return [
             rounded_spot - 2 * step,
             rounded_spot - step,
             rounded_spot,
@@ -255,70 +260,14 @@ class OptionCalculatorUI:
             rounded_spot + 2 * step,
         ]
 
-        return spot_prices
-
-    def nifty_operations(self):
-        self.market_result_label.config(text="Fetching Nifty data...")  # Feedback
-        self.root.update()  # Force immediate update for visual feedback
-        range_text = self.data_fetcher.calculate_std_for_ticker("^NSEI", "Nifty")
-        self.market_result_label.config(text=range_text)
-        data = self.data_fetcher.download_data("^NSEI", "Nifty")
-        if data is not None:
-            self.plot_candlestick(data, "Nifty")
-
-    def crude_operations(self):
-        self.market_result_label.config(text="Fetching Crude Oil data...")  # Feedback
-        self.root.update()  # Force immediate update for visual feedback
-        range_text = self.data_fetcher.calculate_std_for_ticker(
-            "CL=F", "Crude Oil", is_forex=True
-        )
-        self.market_result_label.config(text=range_text)
-        data = self.data_fetcher.download_data("CL=F", "Crude Oil")
-        usdinr = self.data_fetcher.get_usdinr_rate()
-        data = data * usdinr
-        if data is not None:
-            self.plot_candlestick(data, "Crude Oil")
-
-    def midcap_operations(self):
-        self.market_result_label.config(text="Fetching Midcap data...")  # Feedback
-        self.root.update()  # Force immediate update for visual feedback
-        range_text = self.data_fetcher.calculate_std_for_ticker(
-            "^NSEMDCP50", "Nifty Midcap 50", is_forex=False
-        )
-        self.market_result_label.config(text=range_text)
-        data = self.data_fetcher.download_data("^NSEMDCP50", "Nifty Midcap 50")
-
-        if data is not None:
-            self.plot_candlestick(data, "Nifty Midcap 50")
-
-    def banknifty_operations(self):
-        self.market_result_label.config(text="Fetching Banknifty data...")  # Feedback
-        self.root.update()  # Force immediate update for visual feedback
-        range_text = self.data_fetcher.calculate_std_for_ticker(
-            "^NSEBANK", "Banknifty", is_forex=False
-        )
-        self.market_result_label.config(text=range_text)
-        data = self.data_fetcher.download_data("^NSEBANK", "Banknifty")
-
-        if data is not None:
-            self.plot_candlestick(data, "Bank Nifty")
-
     def plot_candlestick(self, data, ticker_name):
-        # Clear the existing chart, if any
         if self.canvas:
             self.canvas.get_tk_widget().destroy()
 
-        # Calculate 30-day and 200-day EMA
         data["EMA_30"] = data["Adj Close"].ewm(span=30, adjust=False).mean()
         data["EMA_200"] = data["Adj Close"].ewm(span=200, adjust=False).mean()
+        data = data[-100:]
 
-        # Prepare data for candlestick chart
-        data = data[-100:]  # Take the last 100 rows
-
-        # Get the last traded price (LTP) from the latest data point
-        ltp = data["Adj Close"].iloc[-1]
-
-        # Create figure and axes for custom plotting
         fig, ax = mpf.plot(
             data,
             type="candle",
@@ -331,8 +280,6 @@ class OptionCalculatorUI:
             ],
             returnfig=True,
         )
-
-        # Set the legend (EMA labels) to be centered below the chart
         ax[0].legend(
             ["30 EMA", "200 EMA"],
             loc="upper center",
@@ -340,19 +287,16 @@ class OptionCalculatorUI:
             ncol=2,
             frameon=False,
         )
-
-        # Annotate the chart with the LTP (Last Traded Price)
         ax[0].text(
             0.5,
             0.95,
-            f"{ltp:.2f}",
+            f"{data['Adj Close'].iloc[-1]:.2f}",
             horizontalalignment="right",
             verticalalignment="top",
             transform=ax[0].transAxes,
             fontsize=11,
         )
 
-        # Display the chart in the right side of the Market Data tab
         self.canvas = FigureCanvasTkAgg(fig, master=self.market_data_tab)
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=0, column=1, rowspan=5, padx=20, pady=10)
