@@ -5,7 +5,7 @@ import mplfinance as mpf
 from calculations import OptionCalculator
 from data_fetch import DataFetcher
 from utils import toggle_inputs, validate_inputs
-import math
+import matplotlib.pyplot as plt
 
 
 class OptionCalculatorUI:
@@ -270,16 +270,24 @@ class OptionCalculatorUI:
         ]
 
     def plot_candlestick(self, data, ticker_name):
+        # Clear the existing chart, if any
         if self.canvas:
             self.canvas.get_tk_widget().destroy()
 
+        # Calculate 30-day and 200-day EMA
         data["EMA_30"] = data["Adj Close"].ewm(span=30, adjust=False).mean()
         data["EMA_200"] = data["Adj Close"].ewm(span=200, adjust=False).mean()
-        data = data[-100:]
 
+        # Prepare data for hollow candlestick chart
+        data = data[-100:]  # Take the last 100 rows
+
+        # Get the last traded price (LTP) from the latest data point
+        ltp = data["Adj Close"].iloc[-1]
+
+        # Create figure and axes for custom plotting
         fig, ax = mpf.plot(
             data,
-            type="hollow_candle",
+            type="hollow_candle",  # Change to hollow candles
             style="charles",
             title=ticker_name,
             ylabel="Price",
@@ -289,6 +297,8 @@ class OptionCalculatorUI:
             ],
             returnfig=True,
         )
+
+        # Set the legend (EMA labels) to be centered below the chart
         ax[0].legend(
             ["30 EMA", "200 EMA"],
             loc="upper center",
@@ -296,16 +306,22 @@ class OptionCalculatorUI:
             ncol=2,
             frameon=False,
         )
+
+        # Annotate the chart with the LTP (Last Traded Price)
         ax[0].text(
             0.5,
             0.95,
-            f"{data['Adj Close'].iloc[-1]:.2f}",
+            f"{ltp:.2f}",
             horizontalalignment="right",
             verticalalignment="top",
             transform=ax[0].transAxes,
             fontsize=11,
         )
 
+        # Display the chart in the right side of the Market Data tab
         self.canvas = FigureCanvasTkAgg(fig, master=self.market_data_tab)
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=0, column=1, rowspan=5, padx=20, pady=10)
+
+        # Close the figure to avoid too many open figures
+        plt.close(fig)
