@@ -2,8 +2,8 @@
 
 # Define variables
 APP_NAME := "Optical"
-ICON_FILE := "options.ico"
-# ICON_FILE := "256.png"
+ICON_FILE := "options.icns"
+
 PY_FILES := main.py ui.py calculations.py data_fetch.py utils.py
 
 # Define targets
