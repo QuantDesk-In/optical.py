@@ -137,6 +137,15 @@ class OptionCalculatorUI:
                 "name": "Crude Oil",
                 "is_forex": True,
             },
+            {"label": "HDFC Bank Ranges", "ticker": "HDFCBANK.NS", "name": "HDFC Bank"},
+            {"label": "Reliance Ranges", "ticker": "RELIANCE.NS", "name": "Reliance"},
+            {
+                "label": "Icici Bank Ranges",
+                "ticker": "ICICIBANK.NS",
+                "name": "ICICI Bank",
+            },
+            {"label": "Infosys Ranges", "ticker": "INFY.NS", "name": "Infosys"},
+            {"label": "ITC Ranges", "ticker": "ITC.NS", "name": "ITC"},
         ]
 
         button_frame = ttk.Frame(self.market_data_tab)
@@ -270,7 +279,7 @@ class OptionCalculatorUI:
 
         fig, ax = mpf.plot(
             data,
-            type="candle",
+            type="hollow_candle",
             style="charles",
             title=ticker_name,
             ylabel="Price",
