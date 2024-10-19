@@ -67,7 +67,7 @@ class DataFetcher:
         periods = {"1 Month": 21, "3 Months": 63, "6 Months": 126, "1 Year": 252}
         last_price = data["Adj Close"].iloc[-1] * usdinr_rate
 
-        result_text = f"{name} Current:\t{last_price:.0f}\n"
+        result_text = f"{name}:\t{last_price:.0f}\n"
         for period, days in periods.items():
             lower_bound, upper_bound = self.calculate_std_ranges(data, days)
             if is_forex:

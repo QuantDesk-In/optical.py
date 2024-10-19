@@ -167,6 +167,7 @@ class OptionCalculatorUI:
                 group_1_frame,
                 text=ticker["label"],
                 command=lambda t=ticker: self.fetch_and_plot_data(t),
+                width=10,  # Set fixed width
             ).grid(row=index, column=0, padx=10, pady=5)
 
         # Add buttons for group 2 (ITC, HDFC, ICICI, Infosys, Reliance)
@@ -177,6 +178,7 @@ class OptionCalculatorUI:
                 group_2_frame,
                 text=ticker["label"],
                 command=lambda t=ticker: self.fetch_and_plot_data(t),
+                width=10,  # Set fixed width
             ).grid(row=index, column=0, padx=10, pady=5)
 
         # Add button for group 3 (Crude)
@@ -187,6 +189,7 @@ class OptionCalculatorUI:
                 group_3_frame,
                 text=ticker["label"],
                 command=lambda t=ticker: self.fetch_and_plot_data(t),
+                width=10,  # Set fixed width
             ).grid(row=index, column=0, padx=10, pady=5)
 
         # Result label for market data feedback
