@@ -2,13 +2,17 @@ import tkinter as tk
 from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import mplfinance as mpf
+import matplotlib.pyplot as plt
+import json
+import os
 from calculations import OptionCalculator
 from data_fetch import DataFetcher
 from utils import toggle_inputs, validate_inputs
-import matplotlib.pyplot as plt
 
 
 class OptionCalculatorUI:
+    TMP_FILE = "/tmp/optical.inputs"  # Temporary file for saving inputs
+
     def __init__(self, root):
         self.root = root
         self.calculator = OptionCalculator()
@@ -27,6 +31,9 @@ class OptionCalculatorUI:
         # Configure grid for dynamic resizing
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
+
+        # Load saved data
+        self.load_saved_data()
 
     def init_option_calculator_tab(self):
         """Initializes the Option Calculator tab."""
@@ -227,6 +234,35 @@ class OptionCalculatorUI:
     def toggle_inputs(self):
         toggle_inputs(self.calculation_mode, self.price_entry, self.volatility_entry)
 
+    def save_input_data(self):
+        """Saves input data to a temporary file."""
+        input_data = {
+            "spot_price": self.spot_entry.get(),
+            "strike_price": self.strike_entry.get(),
+            "expiry_date": self.expiry_entry.get(),
+            "option_type": self.option_type_var.get(),
+            "calculation_mode": self.calculation_mode.get(),
+            "option_price": self.price_entry.get(),
+            "volatility": self.volatility_entry.get(),
+        }
+        with open(self.TMP_FILE, "w") as f:
+            json.dump(input_data, f)
+
+    def load_saved_data(self):
+        """Loads saved data from the temporary file if it exists."""
+        if os.path.exists(self.TMP_FILE):
+            with open(self.TMP_FILE, "r") as f:
+                input_data = json.load(f)
+                self.spot_entry.insert(0, input_data.get("spot_price", ""))
+                self.strike_entry.insert(0, input_data.get("strike_price", ""))
+                self.expiry_entry.insert(0, input_data.get("expiry_date", ""))
+                self.option_type_var.set(input_data.get("option_type", "CALL"))
+                self.calculation_mode.set(
+                    input_data.get("calculation_mode", "volatility")
+                )
+                self.price_entry.insert(0, input_data.get("option_price", ""))
+                self.volatility_entry.insert(0, input_data.get("volatility", ""))
+
     def calculate_option(self):
         inputs = validate_inputs(
             self.spot_entry,
@@ -248,6 +284,7 @@ class OptionCalculatorUI:
                 volatility,
             )
             self.result_label.config(text=result)
+            self.save_input_data()  # Save the inputs after calculation
 
     def calculate_for_multiple_spots(self):
         inputs = validate_inputs(
