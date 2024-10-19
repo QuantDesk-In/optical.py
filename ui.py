@@ -119,48 +119,79 @@ class OptionCalculatorUI:
         ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
 
     def init_market_data_tab(self):
-        """Initializes the Market Data tab and makes it modular for adding new tickers."""
+        """Initializes the Market Data tab and groups buttons by categories."""
         self.market_data_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.market_data_tab, text="Market Data")
 
-        self.tickers = [
-            {"label": "Nifty Ranges", "ticker": "^NSEI", "name": "Nifty"},
+        # Define groups of tickers
+        group_1 = [
+            {"label": "NIFTY 50", "ticker": "^NSEI", "name": "Nifty"},
+            {"label": "BANKNIFTY", "ticker": "^NSEBANK", "name": "Banknifty"},
             {
-                "label": "Midcap Ranges",
+                "label": "MIDCAP 50",
                 "ticker": "^NSEMDCP50",
                 "name": "Nifty Midcap 50",
             },
-            {"label": "Banknifty Ranges", "ticker": "^NSEBANK", "name": "Banknifty"},
+        ]
+
+        group_2 = [
+            {"label": "ITC", "ticker": "ITC.NS", "name": "ITC"},
+            {"label": "HDFCBANK", "ticker": "HDFCBANK.NS", "name": "HDFC Bank"},
             {
-                "label": "Crude Oil Ranges",
-                "ticker": "CL=F",
-                "name": "Crude Oil",
-                "is_forex": True,
-            },
-            {"label": "HDFC Bank Ranges", "ticker": "HDFCBANK.NS", "name": "HDFC Bank"},
-            {"label": "Reliance Ranges", "ticker": "RELIANCE.NS", "name": "Reliance"},
-            {
-                "label": "Icici Bank Ranges",
+                "label": "ICICIBANK",
                 "ticker": "ICICIBANK.NS",
                 "name": "ICICI Bank",
             },
-            {"label": "Infosys Ranges", "ticker": "INFY.NS", "name": "Infosys"},
-            {"label": "ITC Ranges", "ticker": "ITC.NS", "name": "ITC"},
+            {"label": "INFOSYS", "ticker": "INFY.NS", "name": "Infosys"},
+            {"label": "RELIANCE", "ticker": "RELIANCE.NS", "name": "Reliance"},
         ]
 
+        group_3 = [
+            {
+                "label": "CRUDE MCX",
+                "ticker": "CL=F",
+                "name": "Crude Oil",
+                "is_forex": True,
+            }
+        ]
+
+        # Create frames for each group
         button_frame = ttk.Frame(self.market_data_tab)
         button_frame.grid(row=0, column=0, sticky="n", padx=10, pady=10)
 
-        # Dynamically add ticker buttons
-        for index, ticker in enumerate(self.tickers):
+        # Add buttons for group 1 (Nifty, Bank Nifty, Midcap)
+        group_1_frame = ttk.LabelFrame(button_frame, text="Indices")
+        group_1_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        for index, ticker in enumerate(group_1):
             ttk.Button(
-                button_frame,
+                group_1_frame,
                 text=ticker["label"],
                 command=lambda t=ticker: self.fetch_and_plot_data(t),
-            ).grid(row=index + 1, column=0, padx=10, pady=10)
+            ).grid(row=index, column=0, padx=10, pady=5)
 
+        # Add buttons for group 2 (ITC, HDFC, ICICI, Infosys, Reliance)
+        group_2_frame = ttk.LabelFrame(button_frame, text="Stocks")
+        group_2_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+        for index, ticker in enumerate(group_2):
+            ttk.Button(
+                group_2_frame,
+                text=ticker["label"],
+                command=lambda t=ticker: self.fetch_and_plot_data(t),
+            ).grid(row=index, column=0, padx=10, pady=5)
+
+        # Add button for group 3 (Crude)
+        group_3_frame = ttk.LabelFrame(button_frame, text="Commodities")
+        group_3_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+        for index, ticker in enumerate(group_3):
+            ttk.Button(
+                group_3_frame,
+                text=ticker["label"],
+                command=lambda t=ticker: self.fetch_and_plot_data(t),
+            ).grid(row=index, column=0, padx=10, pady=5)
+
+        # Result label for market data feedback
         self.market_result_label = ttk.Label(button_frame, text="")
-        self.market_result_label.grid(row=len(self.tickers) + 1, column=0, pady=10)
+        self.market_result_label.grid(row=3, column=0, pady=10)
 
         # Set up grid layout for chart display
         self.market_data_tab.grid_columnconfigure(1, weight=1)
