@@ -1,10 +1,12 @@
-import tkinter as tk
-from tkinter import ttk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import mplfinance as mpf
-import matplotlib.pyplot as plt
 import json
 import os
+import tkinter as tk
+from tkinter import ttk
+
+import matplotlib.pyplot as plt
+import mplfinance as mpf
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 from calculations import OptionCalculator
 from data_fetch import DataFetcher
 from utils import toggle_inputs, validate_inputs
@@ -14,6 +16,7 @@ class OptionCalculatorUI:
     TMP_FILE = "/tmp/optical.inputs"  # Temporary file for saving inputs
 
     def __init__(self, root):
+        self.ema_data = {}
         self.root = root
         self.calculator = OptionCalculator()
         self.data_fetcher = DataFetcher()
@@ -132,32 +135,29 @@ class OptionCalculatorUI:
 
         # Define groups of tickers
         group_1 = [
-            {"label": "NIFTY 50", "ticker": "^NSEI", "name": "Nifty"},
-            {"label": "BANKNIFTY", "ticker": "^NSEBANK", "name": "Banknifty"},
+            {"label": "NIFTY 50", "ticker": "^NSEI"},
+            {"label": "BANKNIFTY", "ticker": "^NSEBANK"},
             {
                 "label": "MIDCAP 50",
                 "ticker": "^NSEMDCP50",
-                "name": "Nifty Midcap 50",
             },
         ]
 
         group_2 = [
-            {"label": "ITC", "ticker": "ITC.NS", "name": "ITC"},
-            {"label": "HDFCBANK", "ticker": "HDFCBANK.NS", "name": "HDFC Bank"},
+            {"label": "ITC", "ticker": "ITC.NS"},
+            {"label": "HDFCBANK", "ticker": "HDFCBANK.NS"},
             {
                 "label": "ICICIBANK",
                 "ticker": "ICICIBANK.NS",
-                "name": "ICICI Bank",
             },
-            {"label": "INFOSYS", "ticker": "INFY.NS", "name": "Infosys"},
-            {"label": "RELIANCE", "ticker": "RELIANCE.NS", "name": "Reliance"},
+            {"label": "INFOSYS", "ticker": "INFY.NS"},
+            {"label": "RELIANCE", "ticker": "RELIANCE.NS"},
         ]
 
         group_3 = [
             {
                 "label": "CRUDE MCX",
                 "ticker": "CL=F",
-                "name": "Crude Oil",
                 "is_forex": True,
             }
         ]
@@ -203,6 +203,10 @@ class OptionCalculatorUI:
         self.market_result_label = ttk.Label(button_frame, text="")
         self.market_result_label.grid(row=3, column=0, pady=10)
 
+        # Result label for market data feedback
+        self.ema_label = ttk.Label(button_frame, text="")
+        self.ema_label.grid(row=4, column=0, pady=10)
+
         # Set up grid layout for chart display
         self.market_data_tab.grid_columnconfigure(1, weight=1)
         self.market_data_tab.grid_rowconfigure(0, weight=1)
@@ -210,26 +214,26 @@ class OptionCalculatorUI:
     def fetch_and_plot_data(self, ticker_info):
         """Fetches data and plots candlestick for a given ticker."""
         self.market_result_label.config(
-            text=f"Fetching {ticker_info['name']} data..."
+            text=f"Fetching {ticker_info['label']} data..."
         )  # Feedback
         self.root.update()  # Force immediate update for visual feedback
 
         range_text = self.data_fetcher.calculate_std_for_ticker(
             ticker_info["ticker"],
-            ticker_info["name"],
+            ticker_info["label"],
             ticker_info.get("is_forex", False),
         )
         self.market_result_label.config(text=range_text)
 
         data = self.data_fetcher.download_data(
-            ticker_info["ticker"], ticker_info["name"]
+            ticker_info["ticker"], ticker_info["label"]
         )
         if ticker_info.get("is_forex", False):
             usdinr = self.data_fetcher.get_usdinr_rate()
             data = data * usdinr
 
         if data is not None:
-            self.plot_candlestick(data, ticker_info["name"])
+            self.plot_candlestick(data, ticker_info["label"])
 
     def toggle_inputs(self):
         toggle_inputs(self.calculation_mode, self.price_entry, self.volatility_entry)
@@ -351,6 +355,26 @@ class OptionCalculatorUI:
 
         # Prepare data for hollow candlestick chart
         data = data[-100:]  # Take the last 100 rows
+
+        close = data.iloc[-1]["Adj Close"]
+        ema = data.iloc[-1]["EMA_30"]
+
+        if ticker_name not in self.ema_data:
+            self.ema_data[ticker_name] = {
+                "ema": ema,
+                "close": close,
+            }
+        txt = "Ticker\t    EMA\tCLOSE\tBULLISH"
+        for t in self.ema_data:
+            d = self.ema_data[t]
+            e = d["ema"]
+            c = d["close"]
+            b = 1 if c > e else 0
+            txt = (
+                txt + "\n" + f"{t[:8] if len(t) > 8 else t}\t    {e:.0f}\t{c:.0f}\t{b}"
+            )
+
+        self.ema_label.config(text=txt)
 
         # Get the last traded price (LTP) from the latest data point
         ltp = data["Adj Close"].iloc[-1]

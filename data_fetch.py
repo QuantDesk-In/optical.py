@@ -1,6 +1,7 @@
-import yfinance as yf
-import numpy as np
 from tkinter import messagebox
+
+import numpy as np
+import yfinance as yf
 
 
 class DataFetcher:

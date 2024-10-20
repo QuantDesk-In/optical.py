@@ -1,5 +1,5 @@
-from tkinter import messagebox
 from datetime import datetime
+from tkinter import messagebox
 
 
 def validate_inputs(
