@@ -4,13 +4,9 @@ from ui import OptionCalculatorUI
 
 
 def on_closing():
-    # Check if there is a canvas and destroy it before closing the window
-    if app.canvas:
-        app.canvas.get_tk_widget().destroy()
-
-    # Make sure the window is properly destroyed, and the app exits
-    root.quit()  # Stop the Tkinter main loop
-    root.destroy()  # Close the main window to ensure Python exits completely
+    if app.market_data_tab.canvas:  # Check canvas in the MarketDataTab class
+        app.market_data_tab.canvas.get_tk_widget().destroy()  # Destroy the canvas widget if it exists
+    root.destroy()  # Proceed to close the app
 
 
 def main():
