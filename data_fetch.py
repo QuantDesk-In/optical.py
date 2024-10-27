@@ -22,7 +22,7 @@ class DataFetcher:
             # If not, download the data
             data = yf.download(ticker, period="10y")
             if data.empty:
-                messagebox.showerror("Data Error", f"Could not download {name} data.")
+                # messagebox.showerror("Data Error", f"Could not download {name} data.")
                 return
 
             # Store the downloaded data in the cache
