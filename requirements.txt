@@ -1,3 +1,6 @@
 py_vollib
 yfinance
 mplfinance
+diskcache
+matplotlib
+numpy
