@@ -74,8 +74,9 @@ class DataFetcher:
 
         lower_bound = round((1 + projected_mean - projected_std_dev) * last_close, 0)
         upper_bound = round((1 + projected_mean + projected_std_dev) * last_close, 0)
+        projected_price = round((1 + projected_mean) * last_close, 0)
 
-        return lower_bound, upper_bound
+        return lower_bound, upper_bound, projected_price
 
     def calculate_std_for_ticker(self, ticker, name, is_forex=False, multiplier=1.0):
         # Use cached data or download if not available
@@ -93,13 +94,17 @@ class DataFetcher:
 
         result_text = f"{name}:\t{last_price:.0f}\n"
         for period, days in periods.items():
-            lower_bound, upper_bound = self.calculate_std_ranges(data, days)
+            lower_bound, upper_bound, projected_price = self.calculate_std_ranges(
+                data, days
+            )
             if is_forex:
                 lower_bound *= usdinr_rate
                 upper_bound *= usdinr_rate
+                projected_price *= usdinr_rate
             if multiplier != 1.0:
                 lower_bound /= multiplier
                 upper_bound /= multiplier
-            result_text += f"{period}:\t{lower_bound:.0f} - {upper_bound:.0f}\n"
+                projected_price /= multiplier
+            result_text += f"{period}:\t{lower_bound:.0f}  - {projected_price:.0f} - {upper_bound:.0f}\n"
 
         return result_text
