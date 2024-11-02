@@ -269,7 +269,21 @@ class MarketDataTab:
             {"label": "INFOSYS", "ticker": "INFY.NS"},
             {"label": "RELIANCE", "ticker": "RELIANCE.NS"},
         ]
-        group_3 = [{"label": "CRUDE MCX", "ticker": "CL=F", "is_forex": True}]
+        group_3 = [
+            {"label": "CRUDE MCX", "ticker": "CL=F", "is_forex": True},
+            {
+                "label": "GOLD MCX",
+                "ticker": "GC=F",
+                "is_forex": True,
+                "multiplier": 31.1035,
+            },
+            {
+                "label": "SILVER MCX",
+                "ticker": "SI=F",
+                "is_forex": True,
+                "multiplier": 31.1035,
+            },
+        ]
 
         self.add_group_buttons(parent, group_1, "Indices", 0)
         self.add_group_buttons(parent, group_2, "Stocks", 1)
@@ -296,6 +310,7 @@ class MarketDataTab:
             ticker_info["ticker"],
             ticker_info["label"],
             ticker_info.get("is_forex", False),
+            ticker_info.get("multiplier", 1.0),
         )
         self.market_result_label.config(text=range_text)
 
@@ -305,6 +320,8 @@ class MarketDataTab:
         if ticker_info.get("is_forex", False):
             usdinr = self.data_fetcher.get_usdinr_rate()
             data = data * usdinr
+        if ticker_info.get("multiplier", 1.0) != 1.0:
+            data = data / ticker_info.get("multiplier", 1.0)
 
         if data is not None:
             self.plot_candlestick(data, ticker_info["label"])

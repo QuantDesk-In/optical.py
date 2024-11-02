@@ -77,7 +77,7 @@ class DataFetcher:
 
         return lower_bound, upper_bound
 
-    def calculate_std_for_ticker(self, ticker, name, is_forex=False):
+    def calculate_std_for_ticker(self, ticker, name, is_forex=False, multiplier=1.0):
         # Use cached data or download if not available
         data = self.download_data(ticker, name)
         if data is None:
@@ -89,7 +89,7 @@ class DataFetcher:
             return None
 
         periods = {"1 Month": 21, "3 Months": 63, "6 Months": 126, "1 Year": 252}
-        last_price = data["Adj Close"].iloc[-1] * usdinr_rate
+        last_price = (data["Adj Close"].iloc[-1] * usdinr_rate) / multiplier
 
         result_text = f"{name}:\t{last_price:.0f}\n"
         for period, days in periods.items():
@@ -97,6 +97,9 @@ class DataFetcher:
             if is_forex:
                 lower_bound *= usdinr_rate
                 upper_bound *= usdinr_rate
+            if multiplier != 1.0:
+                lower_bound /= multiplier
+                upper_bound /= multiplier
             result_text += f"{period}:\t{lower_bound:.0f} - {upper_bound:.0f}\n"
 
         return result_text
