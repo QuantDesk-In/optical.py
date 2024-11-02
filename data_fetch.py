@@ -1,6 +1,4 @@
-import os
 import threading
-from datetime import datetime, timedelta
 
 import numpy as np
 import yfinance as yf
