@@ -228,6 +228,7 @@ class MarketDataTab:
         self.data_fetcher = DataFetcher()
         self.canvas = None
         self.ema_data = {}
+        self.last_group = None  # Track last group clicked
         self.create_tab(parent)
 
     def create_tab(self, parent):
@@ -270,18 +271,20 @@ class MarketDataTab:
             {"label": "RELIANCE", "ticker": "RELIANCE.NS"},
         ]
         group_3 = [
-            {"label": "CRUDE MCX", "ticker": "CL=F", "is_forex": True},
+            {"label": "CRUDE MCX", "ticker": "CL=F", "is_forex": True, "group": "MCX"},
             {
                 "label": "GOLD MCX",
                 "ticker": "GC=F",
                 "is_forex": True,
                 "multiplier": 31.1035,
+                "group": "MCX",
             },
             {
                 "label": "SILVER MCX",
                 "ticker": "SI=F",
                 "is_forex": True,
                 "multiplier": 31.1035,
+                "group": "MCX",
             },
         ]
 
@@ -303,6 +306,13 @@ class MarketDataTab:
 
     def fetch_and_plot_data(self, ticker_info):
         """Fetches data and plots candlestick chart for a given ticker."""
+        current_group = ticker_info.get("group", "Others")
+
+        # Clear ema_data if switching between MCX and other groups
+        if self.last_group and self.last_group != current_group:
+            self.ema_data.clear()
+        self.last_group = current_group
+
         self.market_result_label.config(text=f"Fetching {ticker_info['label']} data...")
         self.frame.update()
 
