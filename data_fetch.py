@@ -1,33 +1,35 @@
+import os
 import threading
-from tkinter import messagebox
+from datetime import datetime, timedelta
 
 import numpy as np
 import yfinance as yf
+from diskcache import Cache
 
 
 class DataFetcher:
-    def __init__(self):
-        # Dictionary to hold downloaded data for tickers
-        self.data_cache = {}
-        self.usdinr_rate = None  # Cache for the USD/INR rate
+    def __init__(self, cache_dir="/tmp/data_cache", cache_timeout=3600):
+        # Directory and timeout for diskcache
+        self.cache = Cache(cache_dir)
+        self.cache_timeout = cache_timeout
         self.lock = threading.Lock()  # To manage concurrent access to data cache
 
     def download_data(self, ticker, name):
         def fetch_data():
-            # Check if the data for the ticker is already downloaded
+            # Check if the data for the ticker is already in the cache
             with self.lock:
-                if ticker in self.data_cache:
-                    return
+                if ticker in self.cache:
+                    return self.cache[ticker]
 
-            # If not, download the data
+            # Download the data if not in cache
             data = yf.download(ticker, period="10y")
             if data.empty:
-                # messagebox.showerror("Data Error", f"Could not download {name} data.")
-                return
+                return None
 
             # Store the downloaded data in the cache
             with self.lock:
-                self.data_cache[ticker] = data
+                self.cache.set(ticker, data, expire=self.cache_timeout)
+            return data
 
         # Start a new thread to fetch the data
         thread = threading.Thread(target=fetch_data)
@@ -36,29 +38,30 @@ class DataFetcher:
 
         # Return cached data if available, or None if download failed
         with self.lock:
-            return self.data_cache.get(ticker)
+            return self.cache.get(ticker)
 
     def get_usdinr_rate(self):
         def fetch_usdinr():
-            # If the rate is already cached, return it
-            if self.usdinr_rate is not None:
-                return
+            # Check if the USD/INR rate is in the cache
+            if "USDINR" in self.cache:
+                return self.cache["USDINR"]
 
-            # If not, download the current USD/INR exchange rate
+            # Download the current USD/INR exchange rate if not in cache
             usdinr_data = yf.download("INR=X", period="1d")
             if usdinr_data.empty:
-                messagebox.showerror("Data Error", "Could not fetch USD/INR rate.")
-                return
+                return None
 
             # Cache the fetched USD/INR rate
-            self.usdinr_rate = usdinr_data["Adj Close"].iloc[-1]
+            usdinr_rate = usdinr_data["Adj Close"].iloc[-1]
+            self.cache.set("USDINR", usdinr_rate, expire=self.cache_timeout)
+            return usdinr_rate
 
         # Start a new thread to fetch the USD/INR rate
         thread = threading.Thread(target=fetch_usdinr)
         thread.start()
         thread.join()  # Wait for the thread to finish if needed
 
-        return self.usdinr_rate
+        return self.cache.get("USDINR")
 
     def calculate_std_ranges(self, data, future_days):
         data["Returns"] = data["Adj Close"].pct_change()
