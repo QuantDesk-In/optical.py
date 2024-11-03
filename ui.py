@@ -1,10 +1,11 @@
 import json
 import os
 import tkinter as tk
-from tkinter import ttk
+from tkinter import simpledialog, ttk
 
 import matplotlib.pyplot as plt
 import mplfinance as mpf
+import pandas as pd
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from calculations import OptionCalculator
@@ -230,6 +231,26 @@ class MarketDataTab:
         self.ema_data = {}
         self.last_group = None  # Track last group clicked
         self.create_tab(parent)
+        self.ticker_info = None
+
+    def show_date_input_dialog(self):
+        """Shows an input dialog for the user to enter a date."""
+        date_input = simpledialog.askstring(
+            "Input Date", "Enter the date (YYYY-MM-DD):", initialvalue="2024-03-31"
+        )
+        if date_input:
+            try:
+                # Validate the input date format
+                pd.to_datetime(date_input, format="%Y-%m-%d")
+                self.fetch_and_plot_data_with_date(date_input)
+            except ValueError:
+                tk.messagebox.showerror(
+                    "Invalid Date", "Please enter a valid date in YYYY-MM-DD format."
+                )
+
+    def fetch_and_plot_data_with_date(self, date_input):
+        """Fetches and plots data based on the input date."""
+        self.fetch_and_plot_data(self.ticker_info, date_input=date_input)
 
     def create_tab(self, parent):
         """Create the Market Data tab."""
@@ -304,15 +325,15 @@ class MarketDataTab:
                 width=10,
             ).grid(row=index, column=0, padx=10, pady=5)
 
-    def fetch_and_plot_data(self, ticker_info):
-        """Fetches data and plots candlestick chart for a given ticker."""
+    def fetch_and_plot_data(self, ticker_info, date_input=None):
+        """Fetches data and plots candlestick chart for a given ticker and optional date."""
         current_group = ticker_info.get("group", "Others")
 
         # Clear ema_data if switching between MCX and other groups
         if self.last_group and self.last_group != current_group:
             self.ema_data.clear()
         self.last_group = current_group
-
+        self.ticker_info = ticker_info
         self.market_result_label.config(text=f"Fetching {ticker_info['label']} data...")
         self.frame.update()
 
@@ -327,11 +348,20 @@ class MarketDataTab:
         data = self.data_fetcher.download_data(
             ticker_info["ticker"], ticker_info["label"]
         )
+
         if ticker_info.get("is_forex", False):
             usdinr = self.data_fetcher.get_usdinr_rate()
             data = data * usdinr
         if ticker_info.get("multiplier", 1.0) != 1.0:
             data = data / ticker_info.get("multiplier", 1.0)
+
+        if date_input:
+            try:
+                date_input = pd.to_datetime(date_input)
+                data = data.loc[data.index <= date_input]
+            except Exception as e:
+                self.market_result_label.config(text=f"Error filtering data: {str(e)}")
+                return
 
         if data is not None:
             self.plot_candlestick(data, ticker_info["label"])
@@ -343,7 +373,7 @@ class MarketDataTab:
 
         data["EMA_30"] = data["Adj Close"].ewm(span=30, adjust=False).mean()
         data["EMA_200"] = data["Adj Close"].ewm(span=200, adjust=False).mean()
-        data = data[-100:]
+        data = data[-125:]
 
         close = data.iloc[-1]["Adj Close"]
         ema = data.iloc[-1]["EMA_30"]
