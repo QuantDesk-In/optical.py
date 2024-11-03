@@ -1,4 +1,4 @@
-.PHONY: clean build
+.PHONY: clean dist
 
 # Define variables
 APP_NAME := "Optical"
@@ -14,7 +14,7 @@ clean:
 	rm -fr *.spec
 	rm -fr __pycache__
 
-build: clean
+dist: clean
 	@echo installing dependencies
 	pip3 install -r requirements.txt
 	@echo "Building $(APP_NAME)..."
