@@ -359,9 +359,33 @@ class MarketDataTab:
             try:
                 date_input = pd.to_datetime(date_input)
                 data = data.loc[data.index <= date_input]
+
             except Exception as e:
                 self.market_result_label.config(text=f"Error filtering data: {str(e)}")
                 return
+
+        # WIP - calculate the cumulative return
+        # Initialize the "Projection 5 Years" column with NaNs
+        data["Projection 5 Years"] = float("nan")
+
+        start_price = data["Adj Close"].iloc[0]
+        end_price = data["Adj Close"].iloc[-1]
+        n_years = (data.index[-1] - data.index[0]).days / 365.0
+        cum_return = (end_price / start_price) - 1
+        discount_rate = (1 + cum_return) ** (1 / n_years) - 1
+
+        if len(data) > 1255:
+            five_years_ago_data = data.iloc[-1255]
+            five_years_ago_price = five_years_ago_data["Adj Close"]
+            projected_value = five_years_ago_price * (1 + discount_rate) ** 5
+
+            # Assign values to the specific rows
+            data.at[data.index[-1], "Projection 5 Years"] = projected_value
+            data.at[data.index[-1255], "Projection 5 Years"] = five_years_ago_price
+
+            # Interpolate the missing values
+            data["Projection 5 Years"].interpolate(inplace=True)
+        # WIP end
 
         if data is not None:
             self.plot_candlestick(data, ticker_info["label"])
@@ -392,6 +416,9 @@ class MarketDataTab:
             addplot=[
                 mpf.make_addplot(data["EMA_30"], color="blue"),
                 mpf.make_addplot(data["EMA_200"], color="red"),
+                mpf.make_addplot(
+                    data["Projection 5 Years"], color="green", linestyle="--", width=0.8
+                ),
             ],
             returnfig=True,
         )
