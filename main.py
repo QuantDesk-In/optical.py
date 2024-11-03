@@ -9,6 +9,10 @@ def on_closing():
     root.destroy()  # Proceed to close the app
 
 
+def reset_cache(event=None):
+    app.market_data_tab.data_fetcher.clear_cache()
+
+
 def main():
     global root, app
     root = Tk()
@@ -23,6 +27,9 @@ def main():
 
     # Bind the window close event to the on_closing function
     root.protocol("WM_DELETE_WINDOW", on_closing)
+
+    # Bind secret key combination to reset cache (e.g., Ctrl+Alt+R)
+    root.bind("<Command-r>", reset_cache)
 
     root.mainloop()
 

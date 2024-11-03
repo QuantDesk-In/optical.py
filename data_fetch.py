@@ -106,3 +106,7 @@ class DataFetcher:
             result_text += f"{period}:\t{lower_bound:.0f}  - {projected_price:.0f} - {upper_bound:.0f}\n"
 
         return result_text
+
+    def clear_cache(self):
+        with self.lock:
+            self.cache.clear()
