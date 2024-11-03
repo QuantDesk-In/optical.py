@@ -359,7 +359,6 @@ class MarketDataTab:
             try:
                 date_input = pd.to_datetime(date_input)
                 data = data.loc[data.index <= date_input]
-
             except Exception as e:
                 self.market_result_label.config(text=f"Error filtering data: {str(e)}")
                 return
@@ -374,9 +373,8 @@ class MarketDataTab:
         cum_return = (end_price / start_price) - 1
         discount_rate = (1 + cum_return) ** (1 / n_years) - 1
 
-        if len(data) > 1255:
-            five_years_ago_data = data.iloc[-1255]
-            five_years_ago_price = five_years_ago_data["Adj Close"]
+        if len(data) > 1512:
+            five_years_ago_price = data.iloc[-1512:].head(252)["Adj Close"].max()
             projected_value = five_years_ago_price * (1 + discount_rate) ** 5
 
             # Assign values to the specific rows
@@ -407,19 +405,27 @@ class MarketDataTab:
 
         self.update_ema_label()
 
+        # List of addplots
+        addplots = [
+            mpf.make_addplot(data["EMA_30"], color="blue"),
+            mpf.make_addplot(data["EMA_200"], color="red"),
+        ]
+
+        # Check if "Projection 5 Years" has any non-NaN data
+        if not data["Projection 5 Years"].isna().all():
+            addplots.append(
+                mpf.make_addplot(
+                    data["Projection 5 Years"], color="green", linestyle="--", width=0.8
+                )
+            )
+
         fig, ax = mpf.plot(
             data,
             type="hollow_candle",
             style="charles",
             title=ticker_name,
             ylabel="Price",
-            addplot=[
-                mpf.make_addplot(data["EMA_30"], color="blue"),
-                mpf.make_addplot(data["EMA_200"], color="red"),
-                mpf.make_addplot(
-                    data["Projection 5 Years"], color="green", linestyle="--", width=0.8
-                ),
-            ],
+            addplot=addplots,
             returnfig=True,
         )
 
