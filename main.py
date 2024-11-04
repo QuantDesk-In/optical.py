@@ -17,6 +17,10 @@ def show_date_input(event=None):
     app.market_data_tab.show_date_input_dialog()
 
 
+def toggle_projection_line(event=None):
+    app.market_data_tab.toggle_projection_line()
+
+
 def main():
     global root, app
     root = Tk()
@@ -37,6 +41,9 @@ def main():
 
     # Bind Command+D to show date input dialog
     root.bind("<Command-d>", show_date_input)
+
+    # Bind Command+p to show/hide projection
+    root.bind("<Command-p>", toggle_projection_line)
 
     root.mainloop()
 

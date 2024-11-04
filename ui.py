@@ -232,6 +232,7 @@ class MarketDataTab:
         self.last_group = None  # Track last group clicked
         self.create_tab(parent)
         self.ticker_info = None
+        self.show_projection = True
 
     def show_date_input_dialog(self):
         """Shows an input dialog for the user to enter a date."""
@@ -325,6 +326,13 @@ class MarketDataTab:
                 width=10,
             ).grid(row=index, column=0, padx=10, pady=5)
 
+    def toggle_projection_line(self):
+        """Toggle the visibility of the projection line in the plot."""
+        self.show_projection = not self.show_projection
+        if self.ticker_info:
+            # Replot the data with the updated state
+            self.fetch_and_plot_data(self.ticker_info)
+
     def fetch_and_plot_data(self, ticker_info, date_input=None):
         """Fetches data and plots candlestick chart for a given ticker and optional date."""
         current_group = ticker_info.get("group", "Others")
@@ -411,8 +419,8 @@ class MarketDataTab:
             mpf.make_addplot(data["EMA_200"], color="red"),
         ]
 
-        # Check if "Projection 5 Years" has any non-NaN data
-        if not data["Projection 5 Years"].isna().all():
+        # Add the projection line only if it's toggled on
+        if self.show_projection and not data["Projection 5 Years"].isna().all():
             addplots.append(
                 mpf.make_addplot(
                     data["Projection 5 Years"], color="green", linestyle="--", width=0.8
