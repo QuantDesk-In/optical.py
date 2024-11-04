@@ -229,20 +229,97 @@ class MarketDataTab:
         self.data_fetcher = DataFetcher()
         self.canvas = None
         self.ema_data = {}
-        self.last_group = None  # Track last group clicked
-        self.create_tab(parent)
+        self.last_group = None
         self.ticker_info = None
-        self.show_projection = True
+        self.show_projection = False
         self.selected_date = None
+        self.create_tab(parent)
+
+    def create_tab(self, parent):
+        """Create the Market Data tab and its components."""
+        self.frame = ttk.Frame(parent)
+        parent.add(self.frame, text="Market Data")
+
+        button_frame = self.create_button_frame(self.frame)
+        self.create_market_data_buttons(button_frame)
+
+        self.market_result_label = ttk.Label(button_frame, text="")
+        self.market_result_label.grid(row=3, column=0, pady=10)
+
+        self.ema_label = ttk.Label(button_frame, text="")
+        self.ema_label.grid(row=4, column=0, pady=10)
+
+        self.frame.grid_columnconfigure(1, weight=1)
+        self.frame.grid_rowconfigure(0, weight=1)
+
+    def create_button_frame(self, parent):
+        """Create the frame for market data buttons."""
+        button_frame = ttk.Frame(parent)
+        button_frame.grid(row=0, column=0, sticky="n", padx=10, pady=10)
+        return button_frame
+
+    def create_market_data_buttons(self, parent):
+        """Create buttons for market data groups: Indices, Stocks, Commodities."""
+        market_groups = {
+            "Indices": [
+                {"label": "NIFTY 50", "ticker": "^NSEI"},
+                {"label": "BANKNIFTY", "ticker": "^NSEBANK"},
+                {"label": "MIDCAP 50", "ticker": "^NSEMDCP50"},
+            ],
+            "Stocks": [
+                {"label": "ITC", "ticker": "ITC.NS"},
+                {"label": "HDFCBANK", "ticker": "HDFCBANK.NS"},
+                {"label": "ICICIBANK", "ticker": "ICICIBANK.NS"},
+                {"label": "INFOSYS", "ticker": "INFY.NS"},
+                {"label": "RELIANCE", "ticker": "RELIANCE.NS"},
+            ],
+            "Commodities": [
+                {
+                    "label": "CRUDE MCX",
+                    "ticker": "CL=F",
+                    "is_forex": True,
+                    "group": "MCX",
+                },
+                {
+                    "label": "GOLD MCX",
+                    "ticker": "GC=F",
+                    "is_forex": True,
+                    "multiplier": 31.1035,
+                    "group": "MCX",
+                },
+                {
+                    "label": "SILVER MCX",
+                    "ticker": "SI=F",
+                    "is_forex": True,
+                    "multiplier": 31.1035,
+                    "group": "MCX",
+                },
+            ],
+        }
+
+        for row, (title, group) in enumerate(market_groups.items()):
+            self.add_group_buttons(parent, group, title, row)
+
+    def add_group_buttons(self, parent, group, title, row):
+        """Add buttons for a specific market group."""
+        group_frame = ttk.LabelFrame(parent, text=title)
+        group_frame.grid(row=row, column=0, padx=10, pady=10, sticky="ew")
+
+        for index, ticker in enumerate(group):
+            ttk.Button(
+                group_frame,
+                text=ticker["label"],
+                command=lambda t=ticker: self.fetch_and_plot_data(t),
+                width=10,
+            ).grid(row=index, column=0, padx=10, pady=5)
 
     def show_date_input_dialog(self):
-        """Shows an input dialog for the user to enter a date."""
+        """Prompt the user to enter a date."""
         date_input = simpledialog.askstring(
             "Input Date", "Enter the date (YYYY-MM-DD):", initialvalue="2024-03-31"
         )
         if date_input:
             try:
-                # Validate the input date format
                 pd.to_datetime(date_input, format="%Y-%m-%d")
                 self.selected_date = date_input
                 self.fetch_and_plot_data_with_date(date_input)
@@ -252,98 +329,19 @@ class MarketDataTab:
                 )
 
     def fetch_and_plot_data_with_date(self, date_input):
-        """Fetches and plots data based on the input date."""
+        """Fetch and plot data for the specified date."""
         self.fetch_and_plot_data(self.ticker_info, date_input=date_input)
 
-    def create_tab(self, parent):
-        """Create the Market Data tab."""
-        self.frame = ttk.Frame(parent)
-        parent.add(self.frame, text="Market Data")
-
-        button_frame = self.create_button_frame(self.frame)
-        self.create_market_data_buttons(button_frame)
-
-        # Labels for results
-        self.market_result_label = ttk.Label(button_frame, text="")
-        self.market_result_label.grid(row=3, column=0, pady=10)
-
-        self.ema_label = ttk.Label(button_frame, text="")
-        self.ema_label.grid(row=4, column=0, pady=10)
-
-        # Configure layout for the chart
-        self.frame.grid_columnconfigure(1, weight=1)
-        self.frame.grid_rowconfigure(0, weight=1)
-
-    def create_button_frame(self, parent):
-        """Creates the button frame for selecting indices, stocks, and commodities."""
-        button_frame = ttk.Frame(parent)
-        button_frame.grid(row=0, column=0, sticky="n", padx=10, pady=10)
-        return button_frame
-
-    def create_market_data_buttons(self, parent):
-        """Creates buttons for market data categories."""
-        group_1 = [
-            {"label": "NIFTY 50", "ticker": "^NSEI"},
-            {"label": "BANKNIFTY", "ticker": "^NSEBANK"},
-            {"label": "MIDCAP 50", "ticker": "^NSEMDCP50"},
-        ]
-        group_2 = [
-            {"label": "ITC", "ticker": "ITC.NS"},
-            {"label": "HDFCBANK", "ticker": "HDFCBANK.NS"},
-            {"label": "ICICIBANK", "ticker": "ICICIBANK.NS"},
-            {"label": "INFOSYS", "ticker": "INFY.NS"},
-            {"label": "RELIANCE", "ticker": "RELIANCE.NS"},
-        ]
-        group_3 = [
-            {"label": "CRUDE MCX", "ticker": "CL=F", "is_forex": True, "group": "MCX"},
-            {
-                "label": "GOLD MCX",
-                "ticker": "GC=F",
-                "is_forex": True,
-                "multiplier": 31.1035,
-                "group": "MCX",
-            },
-            {
-                "label": "SILVER MCX",
-                "ticker": "SI=F",
-                "is_forex": True,
-                "multiplier": 31.1035,
-                "group": "MCX",
-            },
-        ]
-
-        self.add_group_buttons(parent, group_1, "Indices", 0)
-        self.add_group_buttons(parent, group_2, "Stocks", 1)
-        self.add_group_buttons(parent, group_3, "Commodities", 2)
-
-    def add_group_buttons(self, parent, group, title, row):
-        """Utility to add buttons for each group (Indices, Stocks, Commodities)."""
-        group_frame = ttk.LabelFrame(parent, text=title)
-        group_frame.grid(row=row, column=0, padx=10, pady=10, sticky="ew")
-        for index, ticker in enumerate(group):
-            ttk.Button(
-                group_frame,
-                text=ticker["label"],
-                command=lambda t=ticker: self.fetch_and_plot_data(t),
-                width=10,
-            ).grid(row=index, column=0, padx=10, pady=5)
-
-    def toggle_projection_line(self):
-        """Toggle the visibility of the projection line in the plot."""
-        self.show_projection = not self.show_projection
-        if self.ticker_info:
-            # Replot the data with the updated state
-            self.fetch_and_plot_data(self.ticker_info, date_input=self.selected_date)
-
     def fetch_and_plot_data(self, ticker_info, date_input=None):
-        """Fetches data and plots candlestick chart for a given ticker and optional date."""
+        """Fetch and plot candlestick data for the selected ticker."""
         current_group = ticker_info.get("group", "Others")
 
-        # Clear ema_data if switching between MCX and other groups
         if self.last_group and self.last_group != current_group:
             self.ema_data.clear()
+
         self.last_group = current_group
         self.ticker_info = ticker_info
+
         self.market_result_label.config(text=f"Fetching {ticker_info['label']} data...")
         self.frame.update()
 
@@ -361,9 +359,9 @@ class MarketDataTab:
 
         if ticker_info.get("is_forex", False):
             usdinr = self.data_fetcher.get_usdinr_rate()
-            data = data * usdinr
+            data *= usdinr
         if ticker_info.get("multiplier", 1.0) != 1.0:
-            data = data / ticker_info.get("multiplier", 1.0)
+            data /= ticker_info["multiplier"]
 
         if date_input:
             try:
@@ -373,33 +371,30 @@ class MarketDataTab:
                 self.market_result_label.config(text=f"Error filtering data: {str(e)}")
                 return
 
-        # WIP - calculate the cumulative return
-        # Initialize the "Projection 5 Years" column with NaNs
-        data["Projection 5 Years"] = float("nan")
-
-        start_price = data["Adj Close"].iloc[0]
-        end_price = data["Adj Close"].iloc[-1]
-        n_years = (data.index[-1] - data.index[0]).days / 365.0
-        cum_return = (end_price / start_price) - 1
-        discount_rate = (1 + cum_return) ** (1 / n_years) - 1
-
-        if len(data) > 1512:
-            five_years_ago_price = data.iloc[-1512:].head(252)["Adj Close"].max()
-            projected_value = five_years_ago_price * (1 + discount_rate) ** 5
-
-            # Assign values to the specific rows
-            data.at[data.index[-1], "Projection 5 Years"] = projected_value
-            data.at[data.index[-1255], "Projection 5 Years"] = five_years_ago_price
-
-            # Interpolate the missing values
-            data["Projection 5 Years"].interpolate(inplace=True)
-        # WIP end
-
+        self._add_projection(data)
         if data is not None:
             self.plot_candlestick(data, ticker_info["label"])
 
+    def _add_projection(self, data):
+        """Calculate and add a 5-year projection to the data."""
+        data["Projection 5 Years"] = float("nan")
+
+        if len(data) > 1512:
+            start_price = data["Adj Close"].iloc[0]
+            end_price = data["Adj Close"].iloc[-1]
+            n_years = (data.index[-1] - data.index[0]).days / 365.0
+            cum_return = (end_price / start_price) - 1
+            discount_rate = (1 + cum_return) ** (1 / n_years) - 1
+
+            five_years_ago_price = data.iloc[-1512:].head(252)["Adj Close"].max()
+            projected_value = five_years_ago_price * (1 + discount_rate) ** 5
+
+            data.at[data.index[-1], "Projection 5 Years"] = projected_value
+            data.at[data.index[-1255], "Projection 5 Years"] = five_years_ago_price
+            data["Projection 5 Years"].interpolate(inplace=True)
+
     def plot_candlestick(self, data, ticker_name):
-        """Plots candlestick chart for the market data."""
+        """Plot a candlestick chart for the market data."""
         if self.canvas:
             self.canvas.get_tk_widget().destroy()
 
@@ -415,13 +410,11 @@ class MarketDataTab:
 
         self.update_ema_label()
 
-        # List of addplots
         addplots = [
             mpf.make_addplot(data["EMA_30"], color="blue"),
             mpf.make_addplot(data["EMA_200"], color="red"),
         ]
 
-        # Add the projection line only if it's toggled on
         if self.show_projection and not data["Projection 5 Years"].isna().all():
             addplots.append(
                 mpf.make_addplot(
@@ -456,15 +449,20 @@ class MarketDataTab:
         plt.close(fig)
 
     def update_ema_label(self):
-        """Updates the EMA label with the latest data."""
+        """Update the EMA label with the latest EMA and close prices."""
         txt = "Ticker\t    EMA\tCLOSE\tBULLISH"
-        for t in self.ema_data:
-            d = self.ema_data[t]
-            e = d["ema"]
-            c = d["close"]
-            b = 1 if c > e else 0
-            txt = txt + "\n" + f"{t[:8]}\t    {e:.0f}\t{c:.0f}\t{b}"
+        for ticker, data in self.ema_data.items():
+            ema = data["ema"]
+            close = data["close"]
+            bullish = 1 if close > ema else 0
+            txt += f"\n{ticker[:8]}\t    {ema:.0f}\t{close:.0f}\t{bullish}"
         self.ema_label.config(text=txt)
+
+    def toggle_projection_line(self):
+        """Toggle the projection line on the candlestick chart."""
+        self.show_projection = not self.show_projection
+        if self.ticker_info:
+            self.fetch_and_plot_data(self.ticker_info, date_input=self.selected_date)
 
 
 class OptionCalculatorUI:
