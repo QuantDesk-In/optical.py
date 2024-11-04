@@ -233,6 +233,7 @@ class MarketDataTab:
         self.create_tab(parent)
         self.ticker_info = None
         self.show_projection = True
+        self.selected_date = None
 
     def show_date_input_dialog(self):
         """Shows an input dialog for the user to enter a date."""
@@ -243,6 +244,7 @@ class MarketDataTab:
             try:
                 # Validate the input date format
                 pd.to_datetime(date_input, format="%Y-%m-%d")
+                self.selected_date = date_input
                 self.fetch_and_plot_data_with_date(date_input)
             except ValueError:
                 tk.messagebox.showerror(
@@ -331,7 +333,7 @@ class MarketDataTab:
         self.show_projection = not self.show_projection
         if self.ticker_info:
             # Replot the data with the updated state
-            self.fetch_and_plot_data(self.ticker_info)
+            self.fetch_and_plot_data(self.ticker_info, date_input=self.selected_date)
 
     def fetch_and_plot_data(self, ticker_info, date_input=None):
         """Fetches data and plots candlestick chart for a given ticker and optional date."""
