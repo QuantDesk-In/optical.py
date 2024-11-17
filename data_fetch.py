@@ -1,90 +1,111 @@
+import logging
 import threading
 
 import numpy as np
 import yfinance as yf
 from diskcache import Cache
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
+
 
 class DataFetcher:
     def __init__(self, cache_dir="/tmp/data_cache", cache_timeout=3600):
-        # Directory and timeout for diskcache
         self.cache = Cache(cache_dir)
         self.cache_timeout = cache_timeout
         self.lock = threading.Lock()  # To manage concurrent access to data cache
 
     def download_data(self, ticker, name):
         def fetch_data():
-            # Check if the data for the ticker is already in the cache
-            with self.lock:
-                if ticker in self.cache:
-                    return self.cache[ticker]
+            try:
+                with self.lock:
+                    if ticker in self.cache:
+                        logging.info(f"Cache hit for ticker: {ticker}")
+                        return self.cache[ticker]
 
-            # Download the data if not in cache
-            data = yf.download(ticker, period="10y")
-            if data.empty:
+                logging.info(f"Downloading data for ticker: {ticker}")
+                data = yf.download(ticker, period="10y")
+                if data.empty:
+                    logging.warning(f"No data found for ticker: {ticker}")
+                    return None
+
+                with self.lock:
+                    self.cache.set(ticker, data, expire=self.cache_timeout)
+                return data
+            except Exception as e:
+                logging.error(f"Error fetching data for {ticker}: {e}")
                 return None
 
-            # Store the downloaded data in the cache
-            with self.lock:
-                self.cache.set(ticker, data, expire=self.cache_timeout)
-            return data
-
-        # Start a new thread to fetch the data
         thread = threading.Thread(target=fetch_data)
         thread.start()
-        thread.join()  # Wait for the thread to finish if needed
+        thread.join()
 
-        # Return cached data if available, or None if download failed
         with self.lock:
             return self.cache.get(ticker)
 
     def get_usdinr_rate(self):
         def fetch_usdinr():
-            # Check if the USD/INR rate is in the cache
-            if "USDINR" in self.cache:
-                return self.cache["USDINR"]
+            try:
+                with self.lock:
+                    if "USDINR" in self.cache:
+                        logging.info("Cache hit for USD/INR rate")
+                        return self.cache["USDINR"]
 
-            # Download the current USD/INR exchange rate if not in cache
-            usdinr_data = yf.download("INR=X", period="1d")
-            if usdinr_data.empty:
+                logging.info("Downloading USD/INR exchange rate")
+                usdinr_data = yf.download("INR=X", period="1d")
+                if usdinr_data.empty:
+                    logging.warning("No data found for USD/INR rate")
+                    return None
+
+                usdinr_rate = usdinr_data["Adj Close"].iloc[-1]
+                with self.lock:
+                    self.cache.set("USDINR", usdinr_rate, expire=self.cache_timeout)
+                return usdinr_rate
+            except Exception as e:
+                logging.error(f"Error fetching USD/INR rate: {e}")
                 return None
 
-            # Cache the fetched USD/INR rate
-            usdinr_rate = usdinr_data["Adj Close"].iloc[-1]
-            self.cache.set("USDINR", usdinr_rate, expire=self.cache_timeout)
-            return usdinr_rate
-
-        # Start a new thread to fetch the USD/INR rate
         thread = threading.Thread(target=fetch_usdinr)
         thread.start()
-        thread.join()  # Wait for the thread to finish if needed
+        thread.join()
 
-        return self.cache.get("USDINR")
+        with self.lock:
+            return self.cache.get("USDINR")
 
     def calculate_std_ranges(self, data, future_days):
-        data["Returns"] = data["Adj Close"].pct_change()
-        mean_return = np.mean(data["Returns"])
-        std_dev = np.std(data["Returns"])
-        last_close = data["Adj Close"].iloc[-1]
+        try:
+            data["Returns"] = data["Adj Close"].pct_change()
+            mean_return = np.mean(data["Returns"])
+            std_dev = np.std(data["Returns"])
+            last_close = data["Adj Close"].iloc[-1]
 
-        projected_mean = mean_return * future_days
-        projected_std_dev = std_dev * np.sqrt(future_days)
+            projected_mean = mean_return * future_days
+            projected_std_dev = std_dev * np.sqrt(future_days)
 
-        lower_bound = round((1 + projected_mean - projected_std_dev) * last_close, 0)
-        upper_bound = round((1 + projected_mean + projected_std_dev) * last_close, 0)
-        projected_price = round((1 + projected_mean) * last_close, 0)
+            lower_bound = round(
+                (1 + projected_mean - projected_std_dev) * last_close, 0
+            )
+            upper_bound = round(
+                (1 + projected_mean + projected_std_dev) * last_close, 0
+            )
+            projected_price = round((1 + projected_mean) * last_close, 0)
 
-        return lower_bound, upper_bound, projected_price
+            return lower_bound, upper_bound, projected_price
+        except Exception as e:
+            logging.error(f"Error calculating standard deviation ranges: {e}")
+            return None, None, None
 
     def calculate_std_for_ticker(self, ticker, name, is_forex=False, multiplier=1.0):
-        # Use cached data or download if not available
         data = self.download_data(ticker, name)
         if data is None:
+            logging.warning(f"Data for ticker {ticker} could not be fetched")
             return None
 
-        # Get the cached USD/INR rate or fetch it if not available
         usdinr_rate = self.get_usdinr_rate() if is_forex else 1
-        if usdinr_rate is None:
+        if is_forex and usdinr_rate is None:
+            logging.warning("USD/INR rate could not be fetched")
             return None
 
         periods = {"1 Month": 21, "3 Months": 63, "1 Year": 252}
@@ -95,6 +116,9 @@ class DataFetcher:
             lower_bound, upper_bound, projected_price = self.calculate_std_ranges(
                 data, days
             )
+            if lower_bound is None:
+                continue
+
             if is_forex:
                 lower_bound *= usdinr_rate
                 upper_bound *= usdinr_rate
@@ -109,4 +133,5 @@ class DataFetcher:
 
     def clear_cache(self):
         with self.lock:
+            logging.info("Clearing cache")
             self.cache.clear()
