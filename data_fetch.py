@@ -40,7 +40,10 @@ class DataFetcher:
 
         thread = threading.Thread(target=fetch_data)
         thread.start()
-        thread.join()
+        thread.join(timeout=5)  # Timeout of 5 seconds
+        if thread.is_alive():
+            logging.warning(f"Timeout occurred while fetching data for {ticker}")
+            return None
 
         with self.lock:
             return self.cache.get(ticker)
@@ -69,7 +72,10 @@ class DataFetcher:
 
         thread = threading.Thread(target=fetch_usdinr)
         thread.start()
-        thread.join()
+        thread.join(timeout=5)  # Timeout of 5 seconds
+        if thread.is_alive():
+            logging.warning("Timeout occurred while fetching USD/INR rate")
+            return None
 
         with self.lock:
             return self.cache.get("USDINR")
