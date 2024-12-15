@@ -132,6 +132,10 @@ class OptionCalculatorTab:
                 price,
                 volatility,
             )
+
+            if self.calculation_mode.get() != "volatility":
+                result += f"\t{(float(result)*100.0/spot):.2f}%"
+
             self.result_label.config(text=result)
             self.save_input_data()
 
