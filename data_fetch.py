@@ -26,7 +26,7 @@ class DataFetcher:
                         return self.cache[ticker]
 
                 logging.info(f"Downloading data for ticker: {ticker}")
-                data = yf.download(ticker, period="10y")
+                data = yf.download(ticker, period="20y")
                 if data.empty:
                     logging.warning(f"No data found for ticker: {ticker}")
                     return None
