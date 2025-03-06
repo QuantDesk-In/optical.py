@@ -31,6 +31,8 @@ class DataFetcher:
                     logging.warning(f"No data found for ticker: {ticker}")
                     return None
 
+                data.columns = data.columns.get_level_values(0)
+
                 with self.lock:
                     self.cache.set(ticker, data, expire=self.cache_timeout)
                 return data
@@ -58,11 +60,13 @@ class DataFetcher:
 
                 logging.info("Downloading USD/INR exchange rate")
                 usdinr_data = yf.download("INR=X", period="1d")
+
                 if usdinr_data.empty:
                     logging.warning("No data found for USD/INR rate")
                     return None
 
-                usdinr_rate = usdinr_data["Adj Close"].iloc[-1]
+                usdinr_data.columns = usdinr_data.columns.get_level_values(0)
+                usdinr_rate = usdinr_data["Close"].iloc[-1]
                 with self.lock:
                     self.cache.set("USDINR", usdinr_rate, expire=self.cache_timeout)
                 return usdinr_rate
@@ -82,10 +86,10 @@ class DataFetcher:
 
     def calculate_std_ranges(self, data, future_days):
         try:
-            data["Returns"] = data["Adj Close"].pct_change()
+            data["Returns"] = data["Close"].pct_change()
             mean_return = np.mean(data["Returns"])
             std_dev = np.std(data["Returns"])
-            last_close = data["Adj Close"].iloc[-1]
+            last_close = data["Close"].iloc[-1]
 
             projected_mean = mean_return * future_days
             projected_std_dev = std_dev * np.sqrt(future_days)
@@ -115,7 +119,8 @@ class DataFetcher:
             return None
 
         periods = {"1 Month": 21, "3 Months": 63, "1 Year": 252}
-        last_price = (data["Adj Close"].iloc[-1] * usdinr_rate) / multiplier
+
+        last_price = (data["Close"].iloc[-1] * usdinr_rate) / multiplier
 
         result_text = f"{name}:\t{last_price:.0f}\n"
         for period, days in periods.items():

@@ -384,13 +384,13 @@ class MarketDataTab:
         data["Projection 5 Years"] = float("nan")
 
         if len(data) > 1512:
-            start_price = data["Adj Close"].iloc[0]
-            end_price = data["Adj Close"].iloc[-1]
+            start_price = data["Close"].iloc[0]
+            end_price = data["Close"].iloc[-1]
             n_years = (data.index[-1] - data.index[0]).days / 365.0
             cum_return = (end_price / start_price) - 1
             discount_rate = (1 + cum_return) ** (1 / n_years) - 1
 
-            five_years_ago_price = data.iloc[-1512:].head(252)["Adj Close"].max()
+            five_years_ago_price = data.iloc[-1512:].head(252)["Close"].max()
             projected_value = five_years_ago_price * (1 + discount_rate) ** 5
 
             data.at[data.index[-1], "Projection 5 Years"] = projected_value
@@ -402,11 +402,11 @@ class MarketDataTab:
         if self.canvas:
             self.canvas.get_tk_widget().destroy()
 
-        data["EMA_30"] = data["Adj Close"].ewm(span=30, adjust=False).mean()
-        data["EMA_200"] = data["Adj Close"].ewm(span=200, adjust=False).mean()
+        data["EMA_30"] = data["Close"].ewm(span=30, adjust=False).mean()
+        data["EMA_200"] = data["Close"].ewm(span=200, adjust=False).mean()
         data = data[-125:]
 
-        close = data.iloc[-1]["Adj Close"]
+        close = data.iloc[-1]["Close"]
         ema = data.iloc[-1]["EMA_30"]
 
         if ticker_name not in self.ema_data:
